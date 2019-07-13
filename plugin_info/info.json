@@ -9,8 +9,8 @@
 	"hasDependency" : false,
 	"hasOwnDeamon" : false,
 	"maxDependancyInstallTime" : 0,
-	"changelog" : "",
-	"documentation" : "",
+	"changelog" : "https://sattaz.github.io/Jeedom_OFoehn/#language#/changelog",
+	"documentation" : "https://sattaz.github.io/Jeedom_OFoehn/#language#/",
 	"language" : "fr_FR",
 	"compatibility" : ""
 }
