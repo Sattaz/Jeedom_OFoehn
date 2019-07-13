@@ -1,0 +1,16 @@
+{
+	"id" : "ofoehn",
+	"name" : "PAC O'Foehn",
+	"description" : "Plugin pour piloter une pompe à chaleur O'Foehn",
+	"licence" : "AGPL",
+	"author" : "Sattaz",
+	"require" : "3.2",
+	"category" : "monitoring",
+	"hasDependency" : false,
+	"hasOwnDeamon" : false,
+	"maxDependancyInstallTime" : 0,
+	"changelog" : "",
+	"documentation" : "",
+	"language" : "fr_FR",
+	"compatibility" : ""
+}
