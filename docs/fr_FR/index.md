@@ -1,7 +1,7 @@
 Description 
 ===
 
-Le plugin OFoehn permet de récupérer les informations et de contrôler une pompe à chaleur (PAC) pour picine de la marque O'Foehn.
+Le plugin OFoehn permet de récupérer les informations et de contrôler une pompe à chaleur (PAC) pour piscine de la marque O'Foehn.
 
 Configuration du plugin 
 ===
