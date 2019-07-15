@@ -70,7 +70,7 @@ class ofoehn extends eqLogic {
 
     public function preSave() {
 		$this->setDisplay("width","400px");
-		$this->setDisplay("height","300px");
+		$this->setDisplay("height","315px");
     }
 
     public function postSave() {
@@ -197,6 +197,34 @@ class ofoehn extends eqLogic {
 		$action->setOrder(16);
 		$action->save();
 		
+		$info = $this->getCmd(null, 'Flow');
+		if (!is_object($info)) {
+			$info = new ofoehnCmd();
+			$info->setName(__('Débit', __FILE__));
+		}
+		$info->setLogicalId('Flow');
+		$info->setEqLogic_id($this->getId());
+		$info->setType('info');
+		$info->setSubType('string');
+		$info->setIsHistorized(0);
+		$info->setIsVisible(1);
+		$info->setOrder(17);
+		$info->save();
+		
+		$info = $this->getCmd(null, 'Error');
+		if (!is_object($info)) {
+			$info = new ofoehnCmd();
+			$info->setName(__('Erreur', __FILE__));
+		}
+		$info->setLogicalId('Error');
+		$info->setEqLogic_id($this->getId());
+		$info->setType('info');
+		$info->setSubType('string');
+		$info->setIsHistorized(0);
+		$info->setIsVisible(1);
+		$info->setOrder(18);
+		$info->save();
+		
 		$action = $this->getCmd(null, 'On_Off');
 		if (!is_object($action)) {
 			$action = new ofoehnCmd();
@@ -206,7 +234,7 @@ class ofoehn extends eqLogic {
 		$action->setLogicalId('On_Off');
 		$action->setType('action');
 		$action->setSubType('other');
-		$action->setOrder(17);
+		$action->setOrder(19);
 		$action->save(); 
 		
 		$info = $this->getCmd(null, 'status');
@@ -367,6 +395,17 @@ class ofoehn extends eqLogic {
 		
 		// COLLECTING VALUES
 		
+		
+		// Home
+		curl_setopt($ch, CURLOPT_URL, 'http://'.$OFoehn_IP.':'.$OFoehn_Port.'/accueil.cgi');
+		$dataHome = curl_exec($ch);
+		if (curl_errno($ch)) {
+			curl_close ($ch);
+			log::add('ofoehn', 'error','Error getting heat pump main data: '.curl_error($ch));
+			$this->checkAndUpdateCmd('status', 'Erreur récup. données (voir log)');
+			return;
+		}
+		
 		// Settings
 		curl_setopt($ch, CURLOPT_URL, 'http://'.$OFoehn_IP.':'.$OFoehn_Port.'/getReg.cgi');
 		$dataSettings = curl_exec($ch);
@@ -389,9 +428,12 @@ class ofoehn extends eqLogic {
 	
 		curl_close ($ch);
 		
+		$dataHome_array = explode("\n", $dataHome);
 		$dataSettings_array = explode("\n", $dataSettings);
 		$dataSupervision_array = explode("\n", $dataSupervision);
 
+		$Error = $dataHome_array[7];
+		$Flow = $dataHome_array[8];
 		$Mode = $dataSettings_array[0];
 		$Watter_In = $dataSupervision_array[5];
 		$Watter_Ou = $dataSupervision_array[6];
@@ -403,6 +445,8 @@ class ofoehn extends eqLogic {
 			$this->checkAndUpdateCmd('Pump_State', 0);
 			$this->checkAndUpdateCmd('Mode', '...');
 			$this->checkAndUpdateCmd('Temp_Setpoint', 0);
+			$this->checkAndUpdateCmd('Error', '...');
+			$this->checkAndUpdateCmd('Flow', '...');
 								
 			$this->checkAndUpdateCmd('status', 'Hors Ligne ...');
 			log::add('ofoehn', 'debug','Heat pump is off-line ...');
@@ -430,6 +474,8 @@ class ofoehn extends eqLogic {
 				$this->checkAndUpdateCmd('Temp_Setpoint', $dataSettings_array[3]);
 				break;
 			}
+			$this->checkAndUpdateCmd('Error', $Error);
+			$this->checkAndUpdateCmd('Flow', $Flow);
 			
 			$this->checkAndUpdateCmd('status', 'OK');
 			log::add('ofoehn', 'debug','All good: Data='.$data);
@@ -511,5 +557,3 @@ class ofoehnCmd extends cmd {
     }
     /*     * **********************Getteur Setteur*************************** */
 }
-
-
