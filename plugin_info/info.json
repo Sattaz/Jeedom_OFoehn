@@ -5,7 +5,7 @@
 	"licence" : "AGPL",
 	"author" : "Sattaz",
 	"require" : "3.2",
-	"category" : "monitoring",
+	"category" : "wellness",
 	"hasDependency" : false,
 	"hasOwnDeamon" : false,
 	"maxDependancyInstallTime" : 0,
