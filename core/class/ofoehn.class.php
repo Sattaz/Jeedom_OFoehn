@@ -70,7 +70,7 @@ class ofoehn extends eqLogic {
 
     public function preSave() {
 		$this->setDisplay("width","400px");
-		$this->setDisplay("height","315px");
+		$this->setDisplay("height","440px");
     }
 
     public function postSave() {
@@ -105,33 +105,78 @@ class ofoehn extends eqLogic {
 		$info->setUnite('°C');
 		$info->setOrder(2);
 		$info->save();
+
+
+		$info = $this->getCmd(null, 'Temp_Air');
+		if (!is_object($info)) {
+			$info = new ofoehnCmd();
+			$info->setName(__('Température Air', __FILE__));
+		}
+		$info->setLogicalId('Temp_Air');
+		$info->setEqLogic_id($this->getId());
+		$info->setType('info');
+		$info->setSubType('numeric');
+		$info->setConfiguration('minValue', -15);
+		$info->setConfiguration('maxValue', 40);
+		$info->setIsHistorized(1);
+		$info->setUnite('°C');
+		$info->setOrder(3);
+		$info->save();
+
+		$info = $this->getCmd(null, 'Light_State');
+		if (!is_object($info)) {
+			$info = new ofoehnCmd();
+			$info->setName(__('Etat Lumière   ', __FILE__));
+		}
+		$info->setLogicalId('Light_State');
+		$info->setEqLogic_id($this->getId());
+		$info->setType('info');
+		$info->setSubType('binary');
+		$info->setIsHistorized(1);
+		$info->setIsVisible(1);
+		$info->setOrder(5);
+		$info->save();
 		
 		$info = $this->getCmd(null, 'Pump_State');
 		if (!is_object($info)) {
 			$info = new ofoehnCmd();
-			$info->setName(__('Etat Pompe', __FILE__));
+			$info->setName(__('Etat PAC', __FILE__));
 		}
 		$info->setLogicalId('Pump_State');
 		$info->setEqLogic_id($this->getId());
 		$info->setType('info');
 		$info->setSubType('binary');
 		$info->setIsHistorized(1);
-		$info->setOrder(10);
+		$info->setOrder(6);
 		$info->save();
+		
+		$action = $this->getCmd(null, 'Light_On_Off');
+		if (!is_object($action)) {
+			$action = new ofoehnCmd();
+			$action->setName(__('Lumière ON - OFF', __FILE__));
+		}
+		$action->setEqLogic_id($this->getId());
+		$action->setLogicalId('Light_On_Off');
+		$action->setType('action');
+		$action->setSubType('other');
+		$action->setOrder(9);
+		$action->save(); 
 		
 		$info = $this->getCmd(null, 'Mode');
 		if (!is_object($info)) {
 			$info = new ofoehnCmd();
-			$info->setName(__('Mode Pompe', __FILE__));
+			$info->setName(__('Mode : ', __FILE__));
 		}
+		
 		$info->setLogicalId('Mode');
 		$info->setEqLogic_id($this->getId());
 		$info->setType('info');
 		$info->setSubType('string');
 		$info->setIsHistorized(0);
 		$info->setIsVisible(1);
-		$info->setOrder(11);
+		$info->setOrder(10);
 		$info->save();
+		
 		
 		$action = $this->getCmd(null, 'Mode_Hot');
 		if (!is_object($action)) {
@@ -251,6 +296,20 @@ class ofoehn extends eqLogic {
 		$info->setOrder(30);
 		$info->save();
 		
+		$info = $this->getCmd(null, 'Power_Wf');
+		if (!is_object($info)) {
+			$info = new ofoehnCmd();
+			$info->setName(__('Signal  Wifi : ', __FILE__));
+		}
+		$info->setLogicalId('Power_Wf');
+		$info->setEqLogic_id($this->getId());
+		$info->setType('info');
+		$info->setSubType('string');
+		$info->setIsHistorized(0);
+		$info->setIsVisible(1);
+		$info->setOrder(31);
+		$info->save();
+		
 		$refresh = $this->getCmd(null, 'refresh');
 		if (!is_object($refresh)) {
 			$refresh = new ofoehnCmd();
@@ -260,7 +319,7 @@ class ofoehn extends eqLogic {
 		$refresh->setLogicalId('refresh');
 		$refresh->setType('action');
 		$refresh->setSubType('other');
-		$refresh->setOrder(31);
+		$refresh->setOrder(32);
 		$refresh->save();
     }
 
@@ -329,6 +388,19 @@ class ofoehn extends eqLogic {
 			Sleep(2);
 		}
 		
+		// ON / OFF  LIGHT HUBLOT
+		if ($input == 'LightOnOff') {
+	                curl_setopt($ch, CURLOPT_URL, 'http://'.$OFoehn_IP.':'.$OFoehn_Port.'/toggleE.cgi');
+		        curl_setopt($ch, CURLOPT_POSTFIELDS, 1);
+			curl_exec($ch);
+			if (curl_errno($ch)) {
+				curl_close ($ch);
+				log::add('ofoehn', 'error','Error ON/OFF Lumiere hublot '.curl_error($ch));
+				$this->checkAndUpdateCmd('status', 'Erreur On/Off hublot PAC (voir log)');
+				return;
+			}
+		return;
+		}
 		// SETTING TEMPERATURE SETPOINT
 		if ($input == 'SetTempSetpoint') {
 			$cmd = $this->getCmd(null, 'Temp_Setpoint');
@@ -416,6 +488,16 @@ class ofoehn extends eqLogic {
 			return;
 		}
 		
+		// Calendrier
+		curl_setopt($ch, CURLOPT_URL, 'http://'.$OFoehn_IP.':'.$OFoehn_Port.'/getCal.cgi');
+		$dataCalendrier = curl_exec($ch);
+		if (curl_errno($ch)) {
+			curl_close ($ch);
+			log::add('ofoehn', 'error','Error getting calendrier '.curl_error($ch));
+			$this->checkAndUpdateCmd('status', 'Erreur récup. paramètres calendrier (voir log)');
+			return;
+		}
+		
 		// Supervision
 		curl_setopt($ch, CURLOPT_URL, 'http://'.$OFoehn_IP.':'.$OFoehn_Port.'/super.cgi');
 		$dataSupervision = curl_exec($ch);
@@ -424,28 +506,38 @@ class ofoehn extends eqLogic {
 			log::add('ofoehn', 'error','Error getting heat pump values: '.curl_error($ch));
 			$this->checkAndUpdateCmd('status', 'Erreur Données (voir log)');
 			return;
+		
 		}
 	
 		curl_close ($ch);
 		
 		$dataHome_array = explode("\n", $dataHome);
 		$dataSettings_array = explode("\n", $dataSettings);
+		$dataCalendrier_array = explode("\n", $dataCalendrier);
 		$dataSupervision_array = explode("\n", $dataSupervision);
-
+		
+		
 		$Error = $dataHome_array[7];
 		$Flow = $dataHome_array[8];
+           	//	$Power_Wf = $dataHome_array[15];    // couleur blanche normal
+           	$Power_Wf = ('<font color=#FFFF33>'.$dataHome_array[15].'</font>');    // change couleur wifi en jaune
 		$Mode = $dataSettings_array[0];
 		$Watter_In = $dataSupervision_array[5];
 		$Watter_Ou = $dataSupervision_array[6];
+		$Temp_Air = $dataSupervision_array[7];
 		$Pump_State = $dataSupervision_array[23];
-		
+                $Light_State = $dataCalendrier_array[1];
+                
 		if ($dataSettings == '') {
 			$this->checkAndUpdateCmd('Watter_In', 0);
 			$this->checkAndUpdateCmd('Watter_Ou', 0);
+			$this->checkAndUpdateCmd('Temp_Air', 0);
 			$this->checkAndUpdateCmd('Pump_State', 0);
+			$this->checkAndUpdateCmd('Light_State', 0);
 			$this->checkAndUpdateCmd('Mode', '...');
 			$this->checkAndUpdateCmd('Temp_Setpoint', 0);
 			$this->checkAndUpdateCmd('Error', '...');
+			$this->checkAndUpdateCmd('Power_Wf', 0);
 			$this->checkAndUpdateCmd('Flow', '...');
 								
 			$this->checkAndUpdateCmd('status', 'Hors Ligne ...');
@@ -455,6 +547,7 @@ class ofoehn extends eqLogic {
 			curl_close ($ch);
 			$this->checkAndUpdateCmd('Watter_In', $Watter_In);
 			$this->checkAndUpdateCmd('Watter_Ou', $Watter_Ou);
+			$this->checkAndUpdateCmd('Temp_Air', $Temp_Air);
 			if ($Pump_State == 'ON') {
 				$this->checkAndUpdateCmd('Pump_State', 1);
 			} else {
@@ -474,9 +567,16 @@ class ofoehn extends eqLogic {
 				$this->checkAndUpdateCmd('Temp_Setpoint', $dataSettings_array[3]);
 				break;
 			}
+			
+			if ($Light_State == 'ON') {
+				$this->checkAndUpdateCmd('Light_State', 1);
+			} else {
+				$this->checkAndUpdateCmd('Light_State', 0);
+			}
+						
 			$this->checkAndUpdateCmd('Error', $Error);
 			$this->checkAndUpdateCmd('Flow', $Flow);
-			
+			$this->checkAndUpdateCmd('Power_Wf', $Power_Wf);
 			$this->checkAndUpdateCmd('status', 'OK');
 			log::add('ofoehn', 'debug','All good: Data='.$data);
 			return;
@@ -531,7 +631,12 @@ class ofoehnCmd extends cmd {
 			case 'On_Off':
 				$info = $eqlogic->getOfoehnData('OnOff');
 				break;
-				
+
+			case 'Light_On_Off':
+				$info = $eqlogic->getOfoehnData('LightOnOff');
+				$info = $eqlogic->getOfoehnData('');  // Pour refresh rapide de icone lumière
+				break;
+
 			case 'Set_Temp_Setpoint':
 				$info = $eqlogic->LectureSliderConsigne($_options['slider']);
 				$eqlogic->checkAndUpdateCmd('Temp_Setpoint', $info.'.0'); 
